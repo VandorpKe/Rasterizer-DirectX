@@ -1,5 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Effect.h"
+
 
 Effect::Effect(ID3D11Device* pDevice, const std::wstring& assetFile)
 {
@@ -10,7 +11,11 @@ Effect::Effect(ID3D11Device* pDevice, const std::wstring& assetFile)
 	if (!m_pTechnique->IsValid())
 		std::wcout << L"Technique not valid\n";
 
-
+	m_pMatWorldViewProjVariable = m_pEffect->GetVariableByName("gWorldViewProj")->AsMatrix();
+	if (!m_pMatWorldViewProjVariable->IsValid())
+	{
+		std::wcout << L"m_pMatWorldViewProjVariable not valid\n";
+	}
 }
 
 Effect::~Effect()
@@ -19,28 +24,32 @@ Effect::~Effect()
 	m_pEffect->Release();
 }
 
-ID3DX11Effect* Effect::GetEffect() const
+
+ID3DX11Effect* Effect::GetEffect()
 {
 	return m_pEffect;
 }
 
-ID3DX11EffectTechnique* Effect::GetTechnique() const
+ID3DX11EffectTechnique* Effect::GetTechnique()
 {
 	return m_pTechnique;
+}
+
+ID3D11InputLayout* Effect::GetInputLayout()
+{
+	return m_pInputLayout;
 }
 
 ID3DX11Effect* Effect::LoadEffect(ID3D11Device* pDevice, const std::wstring& assetFile)
 {
 	HRESULT result;
-	ID3D10Blob* pErrorBlob = { nullptr };
+	ID3D10Blob* pErrorBlob{ nullptr };
 	ID3DX11Effect* pEffect;
-
 	DWORD shaderFlags = 0;
-#if defined(DEBUG) || defined(_DEBUG)
+#if defined( DEBUG ) || defined( _DEBUG )
 	shaderFlags |= D3DCOMPILE_DEBUG;
 	shaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
-
 	result = D3DX11CompileEffectFromFile(assetFile.c_str(),
 		nullptr,
 		nullptr,
@@ -49,15 +58,14 @@ ID3DX11Effect* Effect::LoadEffect(ID3D11Device* pDevice, const std::wstring& ass
 		pDevice,
 		&pEffect,
 		&pErrorBlob);
-
-	if(FAILED(result))
+	if (FAILED(result))
 	{
-		if(pErrorBlob != nullptr)
+		if (pErrorBlob != nullptr)
 		{
 			const char* pErrors = static_cast<char*>(pErrorBlob->GetBufferPointer());
 
 			std::wstringstream ss;
-			for (unsigned int i = 0; i < pErrorBlob->GetBufferSize(); ++i)
+			for (unsigned int i = 0; i < pErrorBlob->GetBufferSize(); i++)
 				ss << pErrors[i];
 
 			OutputDebugStringW(ss.str().c_str());
@@ -74,6 +82,6 @@ ID3DX11Effect* Effect::LoadEffect(ID3D11Device* pDevice, const std::wstring& ass
 			return nullptr;
 		}
 	}
-
 	return pEffect;
 }
+

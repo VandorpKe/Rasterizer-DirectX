@@ -1,12 +1,10 @@
 #pragma once
 #include "Math.h"
-#include "vector"
 
-namespace dae
+using namespace dae;
+
+struct Vertex
 {
-	struct Vertex
-	{
-		Vector3 position = {};
-		ColorRGB color = { colors::White };
-	};
-}
+	Vector3 position;
+	ColorRGB color;
+};
