@@ -14,8 +14,8 @@ private:
 	ID3D11Buffer* m_pVertexBuffer;
 	ID3D11Buffer* m_pIndexBuffer;
 	ID3D11InputLayout* m_pInputLayout;
+	uint32_t m_NumIndices;
 	Effect* m_pEffect;
 	ID3DX11EffectTechnique* m_pTechnique;
-	uint32_t m_NumIndices;
 };
 

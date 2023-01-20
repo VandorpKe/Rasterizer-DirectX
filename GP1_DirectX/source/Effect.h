@@ -13,15 +13,10 @@ public:
 
 	ID3DX11Effect* GetEffect();
 	ID3DX11EffectTechnique* GetTechnique();
-	ID3D11InputLayout* GetInputLayout();
-
-
 private:
+	static ID3DX11Effect* LoadEffect(ID3D11Device* pDevice, const std::wstring& assetFile);
+
 	ID3DX11Effect* m_pEffect;
 	ID3DX11EffectTechnique* m_pTechnique;
-	ID3D11InputLayout* m_pInputLayout;
-	ID3DX11EffectMatrixVariable* m_pMatWorldViewProjVariable;
-
-	static ID3DX11Effect* LoadEffect(ID3D11Device* pDevice, const std::wstring& assetFile);
 };
 

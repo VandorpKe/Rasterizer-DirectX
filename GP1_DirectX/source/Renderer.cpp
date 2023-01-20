@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Renderer.h"
-//#include "DataTypes.h"
 #include "MeshRepresentation.h"
 
 namespace dae {
@@ -29,7 +28,7 @@ namespace dae {
 			{{-.5f, -.5f, .5f}, {0.f, 1.f, 0.f}},
 		};
 
-		std::vector<int> indices{ 0,1,2 };
+		std::vector<int> indices{ 0, 1, 2 };
 
 		m_pMeshRepresentation = new MeshRepresentation(m_pDevice, vertices, indices);
 	}
