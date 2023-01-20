@@ -78,4 +78,11 @@ void MeshRepresentation::Render(ID3D11DeviceContext* pDeviceContext)
 		m_pEffect->GetTechnique()->GetPassByIndex(p)->Apply(0, pDeviceContext);
 		pDeviceContext->DrawIndexed(m_NumIndices, 0, 0);
 	}
+
+
+}
+
+void MeshRepresentation::Update(const dae::Matrix& viewProjectionMatrix, const dae::Matrix& viewInverseMatrix)
+{
+	m_pEffect->SetMatrix(viewProjectionMatrix);
 }

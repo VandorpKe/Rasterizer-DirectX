@@ -9,7 +9,7 @@ public:
 	~MeshRepresentation() = default;
 
 	void Render(ID3D11DeviceContext* pDeviceContext);
-
+	void Update(const dae::Matrix& viewProjectionMatrix, const dae::Matrix& viewInverseMatrix);
 private:
 	ID3D11Buffer* m_pVertexBuffer;
 	ID3D11Buffer* m_pIndexBuffer;

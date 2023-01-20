@@ -31,6 +31,8 @@ namespace dae {
 		std::vector<int> indices{ 0, 1, 2 };
 
 		m_pMeshRepresentation = new MeshRepresentation(m_pDevice, vertices, indices);
+
+		m_Camera.Initialize(45.f, { 0.f, 0.f, -10.f });
 	}
 
 	Renderer::~Renderer()
@@ -54,7 +56,8 @@ namespace dae {
 
 	void Renderer::Update(const Timer* pTimer)
 	{
-
+		m_Camera.Update(pTimer);
+		m_pMeshRepresentation->Update(m_Camera.GetProjectionMatrix(), m_Camera.GetViewMatrix());
 	}
 
 
