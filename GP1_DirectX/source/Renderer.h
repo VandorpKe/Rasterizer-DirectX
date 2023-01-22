@@ -1,8 +1,10 @@
 #pragma once
 #include "Camera.h"
+#include "Texture.h"
 
 struct SDL_Window;
 struct SDL_Surface;
+struct Vertex_Out;
 class MeshRepresentation;
 
 namespace dae
@@ -20,7 +22,9 @@ namespace dae
 
 		void Update(const Timer* pTimer);
 		void Render() const;
+		void InputUpdate();
 
+		ColorRGB PixelShading(const Vertex_Out& v);
 	private:
 		SDL_Window* m_pWindow{};
 
@@ -31,6 +35,9 @@ namespace dae
 
 		Camera m_Camera{};
 
+		// KEYS
+		bool m_F2Pressed{ false };
+
 		//DIRECTX
 		HRESULT InitializeDirectX();
 		ID3D11Device* m_pDevice;
@@ -40,6 +47,25 @@ namespace dae
 		ID3D11DepthStencilView* m_pDepthStencilView;
 		ID3D11Resource* m_pRenderTargetBuffer;
 		ID3D11RenderTargetView* m_pRenderTargetView;
-		MeshRepresentation* m_pMeshRepresentation;
+
+		// MESH
+		std::vector<MeshRepresentation*> m_pMeshes;
+
+		enum class LightingMode
+		{
+			ObservedArea,	//Lambert Cosine Law
+			Diffuse,		//Lambert material
+			Specular,		//Glossines
+			Combined		//ObservedArea * Diffuse * Specular
+		};
+		LightingMode m_CurrentLightingMode = LightingMode::Combined;
+
+		Texture* m_pDiffuseTexture;
+		Texture* m_pGlossTexture;
+		Texture* m_pNormalTexture;
+		Texture* m_pSpecularTexture;
+		Texture* m_pFireTexture;
+
+		bool m_EnableNormalMap = true;
 	};
 }

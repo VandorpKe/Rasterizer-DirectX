@@ -37,6 +37,7 @@ namespace dae
 		float totalYaw{};
 
 		Matrix viewMatrix{};
+		Matrix invViewMatrix{};
 		Matrix projectionMatrix{};
 
 		void Initialize(float _fovAngle = 90.f, Vector3 _origin = {0.f,0.f,0.f}, float _aspectRatio = 1)
@@ -46,22 +47,35 @@ namespace dae
 			aspectRatio = _aspectRatio;
 
 			origin = _origin;
+
+			CalculateProjectionMatrix();
 		}
 
-		Matrix GetViewMatrix() const
+		const Matrix& GetViewMatrix() const
 		{
 			return viewMatrix;
 		}
 
-		Matrix GetProjectionMatrix() const
+		const Matrix& GetProjectionMatrix() const
 		{
 			return projectionMatrix;
+		}
+
+		const Matrix& GetInverseViewMatrix() const
+		{
+			return invViewMatrix;
+		}
+
+		Matrix GetWorldViewProjection() const
+		{
+			return GetViewMatrix() * GetProjectionMatrix();
 		}
 
 		void CalculateViewMatrix()
 		{
 			//TODO W1
 			viewMatrix = Matrix::CreateLookAtLH(origin, forward, up);
+			invViewMatrix = Matrix::Inverse(viewMatrix);
 			//DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixlookatlh
 		}
 

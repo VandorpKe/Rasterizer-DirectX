@@ -2,20 +2,24 @@
 #include "DataTypes.h"
 #include "Effect.h"
 
-class MeshRepresentation
+class MeshRepresentation final
 {
 public:
-	MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex>& vertices, std::vector<int>& indices);
-	~MeshRepresentation() = default;
+	MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Effect* pEffect);
+	~MeshRepresentation();
 
 	void Render(ID3D11DeviceContext* pDeviceContext);
 	void Update(const dae::Matrix& viewProjectionMatrix, const dae::Matrix& viewInverseMatrix);
+	void CycleTechnique() const;
 private:
+	Effect* m_pEffect;
+	uint32_t m_NumIndices;
 	ID3D11Buffer* m_pVertexBuffer;
 	ID3D11Buffer* m_pIndexBuffer;
 	ID3D11InputLayout* m_pInputLayout;
-	uint32_t m_NumIndices;
-	Effect* m_pEffect;
-	ID3DX11EffectTechnique* m_pTechnique;
+
+	Matrix m_TranslationMatrix{ Vector3::UnitX, Vector3::UnitY, Vector3::UnitZ, Vector3::Zero };
+	Matrix m_RotationMatrix{ Vector3::UnitX, Vector3::UnitY, Vector3::UnitZ, Vector3::Zero };
+	Matrix m_ScaleMatrix{ Vector3::UnitX, Vector3::UnitY, Vector3::UnitZ, Vector3::Zero };
 };
 

@@ -1,25 +1,37 @@
 ﻿#include "pch.h"
 #include "MeshRepresentation.h"
 #include "Effect.h"
+#include "FullShaderEffect.h"
 #include <assert.h>
 
-MeshRepresentation::MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex>& vertices, std::vector<int>& indices)
+MeshRepresentation::MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Effect* pEffect)
+	: m_pEffect{ std::move(pEffect) }
+	, m_NumIndices{ 0 }
+	, m_pIndexBuffer{ nullptr }
+	, m_pInputLayout{ nullptr }
 {
-	m_pEffect = new Effect{ pDevice,L"Resources/PosCol3D.fx" };
-	m_pTechnique = m_pEffect->GetTechnique();
-
 	//Create Vertex Input
-	static constexpr uint32_t numElements{ 2 };
+	static constexpr uint32_t numElements{ 4 };
 	D3D11_INPUT_ELEMENT_DESC vertexDesc[numElements]{}; 
 	vertexDesc[0].SemanticName = "POSITION"; 
 	vertexDesc[0].Format = DXGI_FORMAT_R32G32B32_FLOAT; 
 	vertexDesc[0].AlignedByteOffset = 0; 
 	vertexDesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA; 
 
-	vertexDesc[1].SemanticName = "COLOR"; 
-	vertexDesc[1]. Format = DXGI_FORMAT_R32G32B32_FLOAT; 
-	vertexDesc[1].AlignedByteOffset = 12; 
+	vertexDesc[1].SemanticName = "TEXCOORD";
+	vertexDesc[1].Format = DXGI_FORMAT_R32G32_FLOAT;
+	vertexDesc[1].AlignedByteOffset = 12;
 	vertexDesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+
+	vertexDesc[2].SemanticName = "NORMAL";
+	vertexDesc[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	vertexDesc[2].AlignedByteOffset = 20;
+	vertexDesc[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+
+	vertexDesc[3].SemanticName = "TANGENT";
+	vertexDesc[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	vertexDesc[3].AlignedByteOffset = 32;
+	vertexDesc[3].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 
 	//Create vertex buffer
 	D3D11_BUFFER_DESC bd = {};
@@ -35,13 +47,14 @@ MeshRepresentation::MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex
 
 	//Create Input Layout 
 	D3DX11_PASS_DESC passDesc{};
-	m_pTechnique->GetPassByIndex(0)->GetDesc(&passDesc);
+	m_pEffect->GetTechnique()->GetPassByIndex(0)->GetDesc(&passDesc);
 	const HRESULT resultInput = pDevice->CreateInputLayout( 
 		vertexDesc, 
 		numElements, 
 		passDesc.pIAInputSignature,
-		passDesc.IAInputSignatureSize, &m_pInputLayout); 
-	if (FAILED(resultInput)) assert(false); //or return
+		passDesc.IAInputSignatureSize, 
+		&m_pInputLayout); 
+	if (FAILED(resultInput)) return; //or return
 
 	//Create Index Buffer
 	m_NumIndices = static_cast<uint32_t>(indices.size());
@@ -52,6 +65,15 @@ MeshRepresentation::MeshRepresentation(ID3D11Device* pDevice, std::vector<Vertex
 	initData.pSysMem = indices.data(); 
 	resultVertex = pDevice->CreateBuffer(&bd, &initData, &m_pIndexBuffer); 
 	if (FAILED(resultInput)) return;
+}
+
+MeshRepresentation::~MeshRepresentation()
+{
+	if (m_pIndexBuffer)m_pIndexBuffer->Release();
+	if (m_pInputLayout)m_pInputLayout->Release();
+	if (m_pVertexBuffer)m_pVertexBuffer->Release();
+
+	if (m_pEffect) delete m_pEffect;
 }
 
 void MeshRepresentation::Render(ID3D11DeviceContext* pDeviceContext)
@@ -78,11 +100,17 @@ void MeshRepresentation::Render(ID3D11DeviceContext* pDeviceContext)
 		m_pEffect->GetTechnique()->GetPassByIndex(p)->Apply(0, pDeviceContext);
 		pDeviceContext->DrawIndexed(m_NumIndices, 0, 0);
 	}
-
-
 }
 
 void MeshRepresentation::Update(const dae::Matrix& viewProjectionMatrix, const dae::Matrix& viewInverseMatrix)
 {
-	m_pEffect->SetMatrix(viewProjectionMatrix);
+	Matrix worldMatrix = {m_ScaleMatrix * m_RotationMatrix * m_TranslationMatrix};
+	m_pEffect->SetWorldViewProjMatrix(worldMatrix * viewProjectionMatrix);
+	m_pEffect->SetViewInvertMatrix(viewInverseMatrix);
+	m_pEffect->SetWorldMatrix(worldMatrix);
+}
+
+void MeshRepresentation::CycleTechnique() const
+{
+	m_pEffect->CycleTechnique();
 }

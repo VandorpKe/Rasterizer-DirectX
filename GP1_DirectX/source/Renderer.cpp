@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "MeshRepresentation.h"
+#include "Utils.h"
+#include "FullShaderEffect.h"
+#include "Texture.h"
 
 namespace dae {
 
@@ -22,21 +25,51 @@ namespace dae {
 			std::cout << "DirectX initialization failed!\n";
 		}
 
-		std::vector<Vertex> vertices = {
-			{{.0f, .5f, .5f }, {1.f, 0.f, 0.f}},
-			{{.5f, -.5f, .5f }, {0.f, 0.f, 1.f}},
-			{{-.5f, -.5f, .5f}, {0.f, 1.f, 0.f}},
-		};
+		// CAMERA
+		m_Camera.Initialize(45.f, { 0.f, 0.f, -50.f }, static_cast<float>(m_Width) / m_Height);
 
-		std::vector<int> indices{ 0, 1, 2 };
+		// VEHICLE
+		m_pDiffuseTexture = new Texture{ "Resources/vehicle_diffuse.png", m_pDevice };
+		m_pGlossTexture = new Texture{ "Resources/vehicle_gloss.png", m_pDevice };
+		m_pNormalTexture = new Texture{ "Resources/vehicle_normal.png", m_pDevice };
+		m_pSpecularTexture = new Texture{ "Resources/vehicle_specular.png", m_pDevice };
 
-		m_pMeshRepresentation = new MeshRepresentation(m_pDevice, vertices, indices);
+		std::vector<Vertex> verticesVehicle;
+		std::vector<uint32_t> indicesVehicle;
+		if (!Utils::ParseOBJ("Resources/vehicle.obj", verticesVehicle, indicesVehicle))
+			std::wcout << L"Invalid filepath\n";
 
-		m_Camera.Initialize(45.f, { 0.f, 0.f, -10.f });
+		FullShaderEffect* pFullShaderEffect{ new FullShaderEffect(m_pDevice, L"Resources/PosCol3D.fx") };
+		pFullShaderEffect->SetNormalMap(m_pNormalTexture);
+		pFullShaderEffect->SetGlossinessMap(m_pGlossTexture);
+		pFullShaderEffect->SetSpecularMap(m_pSpecularTexture);
+		pFullShaderEffect->SetDiffuseMap(m_pDiffuseTexture);
+
+		auto* pMeshVehicle = new MeshRepresentation{ m_pDevice, verticesVehicle, indicesVehicle, pFullShaderEffect };
+		m_pMeshes.push_back(pMeshVehicle);
+
+		// FIRE
+		Effect* pFireEffect{ new Effect(m_pDevice, L"Resources/Transparent3D.fx") };
+		m_pFireTexture = new Texture{ "Resources/fireFX_diffuse.png", m_pDevice };
+		pFireEffect->SetDiffuseMap(m_pFireTexture);
+
+		std::vector<Vertex> verticesFire;
+		std::vector<uint32_t> indicesFire;
+		if (!Utils::ParseOBJ("Resources/fireFX.obj", verticesFire, indicesFire))
+			std::wcout << L"Invalid filepath\n";
+
+		auto* pMeshFire = new MeshRepresentation{ m_pDevice, verticesFire, indicesFire, pFireEffect };
+		m_pMeshes.push_back(pMeshFire);
 	}
 
 	Renderer::~Renderer()
 	{
+		for(auto& mesh : m_pMeshes)
+		{
+			delete mesh;
+		}
+		m_pMeshes.clear();
+
 		if (m_pRenderTargetView) m_pRenderTargetView->Release();
 		if (m_pRenderTargetBuffer) m_pRenderTargetBuffer->Release();
 		if (m_pDepthStencilView) m_pDepthStencilView->Release();
@@ -49,15 +82,42 @@ namespace dae {
 			m_pDeviceContext->Release();
 		}
 		if (m_pDevice) m_pDevice->Release();
-		//Fix hidden DXGIFactory leak
-		
-		delete m_pMeshRepresentation;
 	}
 
 	void Renderer::Update(const Timer* pTimer)
 	{
 		m_Camera.Update(pTimer);
-		m_pMeshRepresentation->Update(m_Camera.GetProjectionMatrix(), m_Camera.GetViewMatrix());
+
+		for(auto& mesh : m_pMeshes)
+		{
+			mesh->Update(m_Camera.GetWorldViewProjection(), m_Camera.GetInverseViewMatrix());
+		}
+
+		InputUpdate();
+	}
+
+	void Renderer::InputUpdate()
+	{
+		const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
+
+		// F2
+		if(pKeyboardState[SDL_SCANCODE_F2])
+		{
+			if (m_F2Pressed)
+				return;
+
+			for(const auto& mesh : m_pMeshes)
+			{
+				mesh->CycleTechnique();
+			}
+
+			m_F2Pressed = true;
+		}
+		else
+		{
+			// Reset
+			m_F2Pressed = false;
+		}
 	}
 
 
@@ -70,13 +130,15 @@ namespace dae {
 		ColorRGB clearColor = ColorRGB{0.f, 0.f, 0.3f}; 
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView,&clearColor.r);
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
-		//2. SET PIPELINE + INVOKE DRAWCALLS (= RENDER)
-		m_pMeshRepresentation->Render(m_pDeviceContext);
 
+		//2. SET PIPELINE + INVOKE DRAWCALLS (= RENDER)
+		for (auto& mesh : m_pMeshes)
+		{
+			mesh->Render(m_pDeviceContext);
+		}
 		
 		//3. PRESENT BACKBUFFER (SWAP)
-		m_pSwapChain->Present( 0, 0);
-
+		m_pSwapChain->Present(0, 0);
 	}
 
 	HRESULT Renderer::InitializeDirectX()
@@ -184,4 +246,73 @@ namespace dae {
 
 		return result;
 	}
+
+
+	// From software rasterizer
+	ColorRGB Renderer::PixelShading(const Vertex_Out& v)
+	{
+		const Vector3 lightDirection = { .577f, -.577f, .577f };
+		// Diffuse Reflection Coefficient
+		const float lightIntensity = { 7.f };
+		const float shininess = { 25.f };
+		const ColorRGB ambient = { .025f, .025f, .025f };
+
+		const ColorRGB diffuse{ m_pDiffuseTexture->Sample(v.uv) };
+		const ColorRGB lambertDiffuseColor{ (lightIntensity * diffuse) / PI };
+
+		//-------------------------
+		// NORMAL MAPS
+		// Calculate tangentSpaceAxis
+		const Vector3 binormal = { Vector3::Cross(v.normal, v.tangent) };
+		const Matrix tangentSpaceAxis = Matrix{ v.tangent, binormal, v.normal, Vector3::Zero };
+
+		// When sampling our normal is in [0, 255], but normalized vectors have [-1, 1]
+		ColorRGB sampledNormal = { m_pNormalTexture->Sample(v.uv) };
+		// no need to divide by 255 - [0, 255] -> [0, 1] - is already done in the sample function
+		const Vector3 sampledNormalRemap = { 2.f * sampledNormal.r - 1.f, 2.f * sampledNormal.g - 1.f, 2.f * sampledNormal.b - 1.f }; // [0, 1] -> [-1, 1]
+
+		// Calculate sampled normal to tanget space
+		const Vector3 sampleNrmlTangentSpace{ tangentSpaceAxis.TransformVector(sampledNormalRemap.Normalized()).Normalized() };
+
+		//-------------------------
+		// NORMAL MAP ENABLED
+		Vector3 selectedNormal{};
+		if (m_EnableNormalMap)
+			selectedNormal = sampleNrmlTangentSpace;
+		else
+			selectedNormal = v.normal;
+
+		//-------------------------
+		// LAMBERT'S COSINE LAW
+		// Calculate observed area (Lambert's cosine law)
+		float observedArea = { Vector3::Dot(selectedNormal, -lightDirection) };
+
+		// Return nothing if observed area is negative
+		if (observedArea < 0)
+			return ColorRGB{ 0, 0, 0 };
+
+		//-------------------------
+		// PHONG
+		// Calculate the phong
+		const Vector3 reflect = { lightDirection - 2.f * Vector3::Dot(selectedNormal, lightDirection) * selectedNormal };
+		const float cosAlpha = { std::max(0.f, Vector3::Dot(reflect, v.viewDirection)) };
+		// r, g & b are the same so you can use either one
+		const ColorRGB specReflectance = { m_pSpecularTexture->Sample(v.uv) * powf(cosAlpha, m_pGlossTexture->Sample(v.uv).r * shininess) };
+
+		//-------------------------
+		// RETURN
+		ColorRGB finalColor{ observedArea, observedArea, observedArea };
+		switch (m_CurrentLightingMode)
+		{
+		case LightingMode::ObservedArea:
+			return finalColor;
+		case LightingMode::Diffuse:
+			return finalColor *= lambertDiffuseColor;
+		case LightingMode::Specular:
+			return finalColor = specReflectance;
+		case LightingMode::Combined:
+			return finalColor *= lambertDiffuseColor + specReflectance + ambient;
+		}
+	}
+
 }

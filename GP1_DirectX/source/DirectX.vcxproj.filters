@@ -49,6 +49,12 @@
     <ClInclude Include="MeshRepresentation.h">
       <Filter>Misc</Filter>
     </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="FullShaderEffect.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -73,6 +79,12 @@
       <Filter>Misc</Filter>
     </ClCompile>
     <ClCompile Include="MeshRepresentation.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="FullShaderEffect.cpp">
       <Filter>Misc</Filter>
     </ClCompile>
   </ItemGroup>
