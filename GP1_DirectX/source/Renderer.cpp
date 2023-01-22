@@ -26,7 +26,7 @@ namespace dae {
 		}
 
 		// CAMERA
-		m_Camera.Initialize(45.f, { 0.f, 0.f, -50.f }, static_cast<float>(m_Width) / m_Height);
+		m_Camera.Initialize(45.f, { 0.f, 0.f, 0.f }, (float)m_Width / m_Height);
 
 		// VEHICLE
 		m_pDiffuseTexture = new Texture{ "Resources/vehicle_diffuse.png", m_pDevice };
@@ -88,37 +88,21 @@ namespace dae {
 	{
 		m_Camera.Update(pTimer);
 
+		const float rotationSpeed = { float(M_PI) / 4.f * pTimer->GetElapsed() };
+		if(m_EnableRotation)
+		{
+			m_CurrentAngle += rotationSpeed;
+			std::cout << "Updating rotation\n";
+		}
+
 		for(auto& mesh : m_pMeshes)
 		{
+			mesh->RotateY(m_CurrentAngle);
+			mesh->Translation(0, 0, 50);
 			mesh->Update(m_Camera.GetWorldViewProjection(), m_Camera.GetInverseViewMatrix());
 		}
-
-		InputUpdate();
 	}
 
-	void Renderer::InputUpdate()
-	{
-		const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
-
-		// F2
-		if(pKeyboardState[SDL_SCANCODE_F2])
-		{
-			if (m_F2Pressed)
-				return;
-
-			for(const auto& mesh : m_pMeshes)
-			{
-				mesh->CycleTechnique();
-			}
-
-			m_F2Pressed = true;
-		}
-		else
-		{
-			// Reset
-			m_F2Pressed = false;
-		}
-	}
 
 
 	void Renderer::Render() const
@@ -315,4 +299,21 @@ namespace dae {
 		}
 	}
 
+	void Renderer::StateTechnique()
+	{
+		for (const auto& mesh : m_pMeshes)
+		{
+			mesh->CycleTechnique();
+		}
+	}
+
+	void Renderer::StateRotation()
+	{
+		if (m_EnableRotation)
+			m_EnableRotation = false;
+		else
+			m_EnableRotation = true;
+
+		std::wcout << L"Rotation: " << m_EnableRotation << std::endl;
+	}
 }

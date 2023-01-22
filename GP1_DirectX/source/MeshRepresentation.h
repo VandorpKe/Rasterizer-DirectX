@@ -11,6 +11,9 @@ public:
 	void Render(ID3D11DeviceContext* pDeviceContext);
 	void Update(const dae::Matrix& viewProjectionMatrix, const dae::Matrix& viewInverseMatrix);
 	void CycleTechnique() const;
+
+	void RotateY(float angle);
+	void Translation(float x, float y, float z);
 private:
 	Effect* m_pEffect;
 	uint32_t m_NumIndices;

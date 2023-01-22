@@ -114,3 +114,13 @@ void MeshRepresentation::CycleTechnique() const
 {
 	m_pEffect->CycleTechnique();
 }
+
+void MeshRepresentation::RotateY(float angle)
+{
+	m_RotationMatrix = Matrix::CreateRotationY(angle);
+}
+
+void MeshRepresentation::Translation(float x, float y, float z)
+{
+	m_TranslationMatrix = Matrix::CreateTranslation(x, y, z);
+}

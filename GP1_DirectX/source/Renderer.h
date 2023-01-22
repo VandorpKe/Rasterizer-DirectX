@@ -22,9 +22,12 @@ namespace dae
 
 		void Update(const Timer* pTimer);
 		void Render() const;
-		void InputUpdate();
 
 		ColorRGB PixelShading(const Vertex_Out& v);
+
+		// KEYS
+		void StateTechnique();
+		void StateRotation();
 	private:
 		SDL_Window* m_pWindow{};
 
@@ -34,9 +37,6 @@ namespace dae
 		bool m_IsInitialized{ false };
 
 		Camera m_Camera{};
-
-		// KEYS
-		bool m_F2Pressed{ false };
 
 		//DIRECTX
 		HRESULT InitializeDirectX();
@@ -50,7 +50,17 @@ namespace dae
 
 		// MESH
 		std::vector<MeshRepresentation*> m_pMeshes;
+		float m_CurrentAngle = { 0.f };
 
+		Texture* m_pDiffuseTexture;
+		Texture* m_pGlossTexture;
+		Texture* m_pNormalTexture;
+		Texture* m_pSpecularTexture;
+		Texture* m_pFireTexture;
+
+		// SELECTION STATE
+		bool m_EnableNormalMap = { true };
+		bool m_EnableRotation = { true };
 		enum class LightingMode
 		{
 			ObservedArea,	//Lambert Cosine Law
@@ -59,13 +69,5 @@ namespace dae
 			Combined		//ObservedArea * Diffuse * Specular
 		};
 		LightingMode m_CurrentLightingMode = LightingMode::Combined;
-
-		Texture* m_pDiffuseTexture;
-		Texture* m_pGlossTexture;
-		Texture* m_pNormalTexture;
-		Texture* m_pSpecularTexture;
-		Texture* m_pFireTexture;
-
-		bool m_EnableNormalMap = true;
 	};
 }

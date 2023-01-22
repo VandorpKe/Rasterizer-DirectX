@@ -25,14 +25,13 @@ namespace dae
 		// Didn't understand the cycle ways on the ppt
 		void CycleTechnique();
 	protected:
-		enum class Technique
+		enum class FilterState
 		{
 			point,
 			linear,
 			anisotropic,
-			count
 		};
-		Technique m_TechniqueState = Technique::point;
+		FilterState m_FilterMethod = FilterState::point;
 
 		static ID3DX11Effect* LoadEffect(ID3D11Device* pDevice, const std::wstring& assetFile);
 

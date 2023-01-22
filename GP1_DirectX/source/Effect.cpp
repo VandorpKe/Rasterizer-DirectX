@@ -10,7 +10,7 @@ namespace dae
 
 		m_pTechnique = m_pEffect->GetTechniqueByName("PointFilteringTechnique");
 		if (!m_pTechnique->IsValid())
-			std::wcout << L"Technique not valid\n";
+			std::wcout << L"FilterState not valid\n";
 
 		m_pMatWorldViewProjVariable = m_pEffect->GetVariableByName("gWorldViewProj")->AsMatrix();
 		if (!m_pMatWorldViewProjVariable->IsValid())
@@ -69,11 +69,15 @@ namespace dae
 
 	void Effect::CycleTechnique()
 	{
-		m_TechniqueState = static_cast<Technique>(static_cast<int>(m_TechniqueState) + 1 & static_cast<int>(Technique::count));
+		if (static_cast<int>(m_FilterMethod) == 2)
+			m_FilterMethod = FilterState(0);
+		else
+			m_FilterMethod = FilterState(static_cast<int>(m_FilterMethod) + 1);
 
-		switch (m_TechniqueState)
+
+		switch (m_FilterMethod)
 		{
-		case Technique::point:
+		case FilterState::point:
 			{
 				m_pTechnique = m_pEffect->GetTechniqueByName("PointFilteringTechnique");
 				if (!m_pTechnique->IsValid())
@@ -81,7 +85,7 @@ namespace dae
 				std::wcout << L"PointFilteringTechnique\n";
 			}
 			break;
-		case Technique::linear:
+		case FilterState::linear:
 			{
 				m_pTechnique = m_pEffect->GetTechniqueByName("LinearFilteringTechnique");
 				if (!m_pTechnique->IsValid()) 
@@ -89,7 +93,7 @@ namespace dae
 				std::wcout << L"LinearFilteringTechnique\n";
 			}
 			break;
-		case Technique::anisotropic:
+		case FilterState::anisotropic:
 			{
 				m_pTechnique = m_pEffect->GetTechniqueByName("AnisotropicFilteringTechnique");
 				if (!m_pTechnique->IsValid()) 
